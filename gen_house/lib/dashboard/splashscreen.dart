@@ -1,4 +1,4 @@
-import 'package:gen_house/screens/loginpage.dart';
+import 'package:gen_house/dashboard/loginpage.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatelessWidget {

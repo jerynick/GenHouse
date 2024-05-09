@@ -34,15 +34,19 @@ class _LoginPageState extends State<LoginPage> {
 
       setState(() {
         if (e is FirebaseAuthException) {
-          if (e.code == 'invalid-credential') {
-            _errorMessage = 'Login failed. Please double-check your email and password and try again';
-          } if (e.code == 'too-many-requests') {
-            _errorMessage = 'We have detected unusual activity on your account. Please try again later or reset your password';
-          } if (e.code == 'invalid-email') {
-            _errorMessage = 'Field must be filled out';
-          }
-          else {
-            _errorMessage = e.message ?? 'An error occurred';
+          switch (e.code) {
+            case 'invalid-credential':
+              _errorMessage = 'Login failed. Please double-check your email and password and try again';
+              break;
+            case 'too-many-requests':
+              _errorMessage = 'We have detected unusual activity on your account. Please try again later or reset your password';
+              break;
+            case 'invalid-email':
+              _errorMessage = 'Field must be filled out';
+              break;
+            default:
+              _errorMessage = e.message ?? 'An error occurred';
+              break;
           }
         } else {
           _errorMessage = 'An error occurred';
@@ -61,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
               color: Colors.red,
               borderRadius: BorderRadius.all(Radius.circular(20)),
             ),
-            child:Text(_errorMessage),
+            child: Text(_errorMessage),
           ),
         ),
       );

@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:gen_house/screens/splashscreen.dart';
-import 'package:gen_house/screens/loginpage.dart';
-import 'package:gen_house/screens/dashboard.dart';
-import 'package:gen_house/screens/settings.dart';
-import 'package:gen_house/screens/genkey.dart';
-import 'package:gen_house/screens/signup.dart';
-import 'package:gen_house/screens/forgotpass.dart';
-
+import 'package:flutter/services.dart';
+import 'package:gen_house/dashboard/splashscreen.dart';
+import 'package:gen_house/dashboard/loginpage.dart';
+import 'package:gen_house/dashboard/dashboard.dart';
+import 'package:gen_house/settings/settings.dart';
+import 'package:gen_house/settings/genkey.dart';
+import 'package:gen_house/dashboard/signup.dart';
+import 'package:gen_house/settings/forgotpass.dart';
+import 'package:gen_house/services/firebase_options.dart';// Pastikan ini mengarah ke file yang benar
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: FirebaseOptions(
-      apiKey: 'AIzaSyCOjYbqOPx6VgIsvjK-cNiXcQArjnEVBvg',
-      appId: '1:961677687907:android:128ed945e2783f78328c56',
-      messagingSenderId: '961677687907',
-      projectId: 'genhousedb',
-      databaseURL: 'https://genhousedb-default-rtdb.asia-southeast1.firebasedatabase.app',
-      storageBucket: 'genhousedb.appspot.com',
-    ),
+    options: DefaultFirebaseOptions.currentPlatform, // Gunakan konfigurasi dari firebase_options.dart
   );
-
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]).then((_) {
   runApp(MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -32,6 +30,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color.fromARGB(255, 18, 32, 47),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Colors.black,
+        ),
       ),
       // Rute-rute aplikasi didefinisikan di sini
       routes: {

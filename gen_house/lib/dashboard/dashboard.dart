@@ -1,10 +1,8 @@
 import "package:flutter/material.dart";
 import "package:firebase_core/firebase_core.dart";
 import "package:firebase_database/firebase_database.dart";
-import "package:firebase_core/firebase_core.dart";
-import "package:gen_house/screens/settings.dart";
+import "package:gen_house/settings/settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
-import "package:url_launcher/url_launcher.dart";
 import "package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart";
 
 void main() async {
@@ -46,11 +44,13 @@ class _DashboardPageState extends State<DashboardPage> {
   String imageUrl = 'assets/img/defaultday.png';
   String imageAlarm = 'assets/icon/defaultfire.png';
   String imageDoor = 'assets/img/defaultdoor.png';
+  String door = 'N/A';
+  String fire = 'N/A';
+  String controlMode = '';
 
   double temp = 0.0;
   double hum = 0.0;
-  String door = 'N/A';
-  String fire = 'N/A';
+
   bool isLed1On = true;
   bool isLed2On = true;
   bool isFanOn = true;
@@ -63,11 +63,39 @@ class _DashboardPageState extends State<DashboardPage> {
   late DatabaseReference FanReference;
   late DatabaseReference DoorReference;
   late DatabaseReference GateReference;
+  late DatabaseReference modeRef;
   
   @override
   void initState(){
     super.initState();
     _getDataFirebase();
+    _getControlMode();
+  }
+
+  void _getControlMode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String path = prefs.getString('firebase_path') ?? '/';
+    modeRef = FirebaseDatabase.instance.reference().child('$path/mode');
+    modeRef.onValue.listen((event) {
+      setState(() {
+        controlMode = event.snapshot.value.toString();
+      });
+    });
+  }
+
+  void _autoControlLogic() {
+    if (temp > 35.0) {
+      FanReference.set('ON');
+    } else {
+      FanReference.set('OFF');
+    }
+    if (daycycle == 'DARK') {
+      Led1Reference.set('ON');
+      Led2Reference.set('ON');
+    } else {
+      Led1Reference.set('OFF');
+      Led2Reference.set('OFF');
+    }
   }
 
   void _getDataFirebase() async {
@@ -75,6 +103,11 @@ class _DashboardPageState extends State<DashboardPage> {
     String path = prefs.getString('firebase_path') ?? '/';
     
     MonitorRef = FirebaseDatabase.instance.reference().child('$path');
+    Led1Reference = FirebaseDatabase.instance.reference().child('$path/led1');
+    Led2Reference = FirebaseDatabase.instance.reference().child('$path/led2');
+    FanReference = FirebaseDatabase.instance.reference().child('$path/fan');
+    DoorReference = FirebaseDatabase.instance.reference().child('$path/doorlock');
+    GateReference = FirebaseDatabase.instance.reference().child('$path/gate');
     MonitorRef.onValue.listen((event) {
       try {
         if (event.snapshot.value !=null) {
@@ -89,89 +122,70 @@ class _DashboardPageState extends State<DashboardPage> {
           updateImage();
           updateAlarm();
           updateDoor();
+          if (controlMode == 'auto') {
+            _autoControlLogic();
+          }
         }
       } catch (e) {
         print('Error: $e');
       }
     });
-
-    Led1Reference = FirebaseDatabase.instance.reference().child('$path/led1');
-    Led2Reference = FirebaseDatabase.instance.reference().child('$path/led2');
-    FanReference = FirebaseDatabase.instance.reference().child('$path/fan');
-    DoorReference = FirebaseDatabase.instance.reference().child('$path/doorlock');
-    GateReference = FirebaseDatabase.instance.reference().child('$path/gate');
-
-    try {
-      DatabaseEvent led1Event = await Led1Reference.once();
-      DataSnapshot led1Snapshot = led1Event.snapshot;
-      if (led1Snapshot.value != null) {
+  
+    Led1Reference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
         setState(() {
-          isLed1On = led1Snapshot.value == '';
+          isLed1On = event.snapshot.value == 'ON';
         });
       }
-    } catch (error) {
-      print("Error loading Led1 value from Firebase: $error");
-    }
+    });
 
-    try {
-      DatabaseEvent led2Event = await Led2Reference.once();
-      DataSnapshot led2Snapshot = led2Event.snapshot;
-      if (led2Snapshot.value != null) {
+    Led2Reference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
         setState(() {
-          isLed2On = led2Snapshot.value == '';
+          isLed2On = event.snapshot.value == 'ON';
         });
       }
-    } catch (error) {
-      print("Error loading Led2 value from Firebase: $error");
-    }
+    });
 
-    try {
-      DatabaseEvent fanEvent = await FanReference.once();
-      DataSnapshot fanSnapshot = fanEvent.snapshot;
-      if (fanSnapshot.value != null) {
+    FanReference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
         setState(() {
-          isFanOn = fanSnapshot.value == '';
+          isFanOn = event.snapshot.value == 'ON';
         });
       }
-    } catch (error) {
-      print("Error loading Fan value from Firebase: $error");
-    }
+    });
 
-    try {
-      DatabaseEvent doorEvent = await DoorReference.once();
-      DataSnapshot doorSnapshot = doorEvent.snapshot;
-      if (doorSnapshot.value != null) {
+    GateReference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
         setState(() {
-          isDoorLocked = doorSnapshot.value == '';
+          isGateOpen = event.snapshot.value == 'OPEN';
         });
       }
-    } catch (error) {
-      print("Error loading Doorlock value from Firebase: $error");
-    }
+    });
 
-    try {
-      DatabaseEvent gateEvent = await GateReference.once();
-      DataSnapshot gateSnapshot = gateEvent.snapshot;
-      if (gateSnapshot.value != null) {
+    DoorReference.onValue.listen((event) {
+      if (event.snapshot.value != null) {
         setState(() {
-          isGateOpen = gateSnapshot.value == '';
+          isDoorLocked = event.snapshot.value == 'LOCK';
         });
       }
-    } catch (error) {
-      print("Error loading Led1 value from Firebase: $error");
-    }
-
+    });
   }
 
   void _toggleLed1() {
+    if (controlMode == 'manual') {
     setState(() {
       isLed1On = !isLed1On;
     });
 
     Led1Reference.set(isLed1On ? 'ON' : 'OFF');
+    } else {
+      print("Hohoho");
+    }
   }
 
   void _toggleLed2() {
+
     setState(() {
       isLed2On = !isLed2On;
     });
@@ -240,7 +254,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   _emergency() async {
-    const number = '081336915054';
+    const number = '911';
     bool res = await FlutterPhoneDirectCaller.callNumber(number) ?? false;
   }
 
@@ -1273,5 +1287,4 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 }
-
 

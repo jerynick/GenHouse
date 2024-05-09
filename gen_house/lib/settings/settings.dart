@@ -1,36 +1,10 @@
 import "package:flutter/material.dart";
-import "package:firebase_core/firebase_core.dart";
 import 'package:firebase_auth/firebase_auth.dart';
-import "package:firebase_database/firebase_database.dart";
-import "package:gen_house/screens/genkey.dart";
-import 'dashboard.dart';
-import 'loginpage.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: FirebaseOptions(
-      apiKey: 'AIzaSyCOjYbqOPx6VgIsvjK-cNiXcQArjnEVBvg',
-      appId: '1:961677687907:android:128ed945e2783f78328c56',
-      messagingSenderId: '961677687907',
-      projectId: 'genhousedb',
-      databaseURL: 'https://genhousedb-default-rtdb.asia-southeast1.firebasedatabase.app',
-      storageBucket: 'genhousedb.appspot.com',
-    )
-  );
-
-  runApp(SettingsApp()); 
-}
-
-class SettingsApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SettingsPage(),
-    );
-  }
-}
+import "package:gen_house/settings/genkey.dart";
+import '../dashboard/dashboard.dart';
+import '../dashboard/loginpage.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   
@@ -39,12 +13,37 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late DatabaseReference ModeRef;
+  String currentMode = 'auto'; // Atau nilai default yang sesuai
 
   @override
   void initState() {
     super.initState();
+    fetchCurrentMode();
+  }
+
+  void fetchCurrentMode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String path = prefs.getString('firebase_path') ?? '/';
+
+    ModeRef = FirebaseDatabase.instance.reference().child('$path/mode');
+    ModeRef.onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        setState(() {
+          currentMode = event.snapshot.value == 'auto' ? 'auto' : 'manual';
+        });
+      }
+    });
+  }
+
+  void toggleGeniusMode() async {
+    setState(() {
+      currentMode = currentMode == 'auto' ? 'manual' : 'auto';
+      print('Toggled Mode: $currentMode'); // Tambahkan pernyataan print untuk debug
+    });
+
+    ModeRef.set(currentMode); // Langsung set nilai mode ke Firebase
   }
 
   void _logout() async {
@@ -252,7 +251,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
                               height: 0,
-                              decoration: TextDecoration.none,
+                              decoration: TextDecoration.none
                             ),
                           ),
                         ),
@@ -264,7 +263,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           width: 278,
                           height: 39,
                           child: Text(
-                            'You can set your Genkey in this menu. Genkey is a “unique” name used to connect your application to your GenHouse IoT database. Submit for save the change, Discard for cancel',
+                            'You can set your Genkey in this menu. Genkey is a "unique" name used to connect your application to your GenHouse IoT database. Submit for save the change, Discard for cancel',
                             textAlign: TextAlign.justify,
                             style: TextStyle(
                               color: Colors.black,
@@ -272,7 +271,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w400,
                               height: 0,
-                              decoration: TextDecoration.none
+                              decoration: TextDecoration.none 
                             ),
                           ),
                         ),
@@ -280,15 +279,172 @@ class _SettingsPageState extends State<SettingsPage> {
                       Positioned(
                         left: 273,
                         top: 79,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(context,
-                            MaterialPageRoute(builder: (context) => GenkeyPage()),
-                            );
-                          },
                         child: SizedBox(
                           width: 24,
                           height: 23,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(context,
+                                MaterialPageRoute(builder: (context) => GenkeyPage())
+                              );
+                            },
+                          child: Text(
+                            'Go',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w700,
+                              height: 0,
+                              decoration: TextDecoration.none
+                            ),
+                          ),
+                        ),
+                      ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 27,
+                top: 298,
+                child: GestureDetector(
+                  onTap: () => toggleGeniusMode(),
+                  child: Container(
+                    width: 306,
+                    height: 102,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          child: Container(
+                            width: 306,
+                            height: 102,
+                            decoration: ShapeDecoration(
+                              color: currentMode == 'auto' ? Colors.green : Color(0x549BBEC8),// Changed color based on mode
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 12,
+                          top: 8,
+                          child: SizedBox(
+                            width: 119,
+                            height: 19,
+                            child: Text(
+                              'Genius Mode',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w700,
+                                height: 0,
+                                decoration: TextDecoration.none
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 12,
+                          top: 30,
+                          child: SizedBox(
+                            width: 278,
+                            height: 39,
+                            child: Text(
+                              'When you activate Genius mode, all GenHouse devices will be controlled automatically',
+                              textAlign: TextAlign.justify,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 8,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w400,
+                                height: 0,
+                                decoration: TextDecoration.none
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 27,
+                top: 411,
+                child: Container(
+                  width: 306,
+                  height: 102,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: Container(
+                          width: 306,
+                          height: 102,
+                          decoration: ShapeDecoration(
+                            color: Color(0x549BBEC8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 12,
+                        top: 8,
+                        child: SizedBox(
+                          width: 119,
+                          height: 19,
+                          child: Text(
+                            'Security Settings',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 13,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w700,
+                              height: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 12,
+                        top: 30,
+                        child: SizedBox(
+                          width: 278,
+                          height: 39,
+                          child: Text(
+                            'You can manage your account here. For example, changing your password account, or activating the fingerprint login feature',
+                            textAlign: TextAlign.justify,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 8,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w400,
+                              height: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 273,
+                        top: 79,
+                        child: SizedBox(
+                          width: 24,
+                          height: 23,
+                          //child: GestureDetector(
+                            //onTap: () {
+                              //Navigator.push(context
+                              //MaterialPageRoute(builder: ((context) => ))
+                            //},
                           child: Text(
                             'Go',
                             textAlign: TextAlign.center,
@@ -303,14 +459,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                         ),
-                      ),
+                      //),
                     ],
                   ),
                 ),
               ),
               Positioned(
                 left: 27,
-                top: 298,
+                top: 524,
                 child: Container(
                   width: 306,
                   height: 102,
@@ -372,11 +528,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       Positioned(
                         left: 275,
                         top: 79,
-                        child: GestureDetector(
-                          onTap: _logout,
                         child: SizedBox(
                           width: 24,
                           height: 23,
+                          child: GestureDetector(
+                            onTap: _logout,
                           child: Text(
                             'Go',
                             textAlign: TextAlign.center,
@@ -386,27 +542,13 @@ class _SettingsPageState extends State<SettingsPage> {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
                               height: 0,
-                              decoration: TextDecoration.none
+                              decoration: TextDecoration.none,
                             ),
                           ),
                         ),
-                        ),
                       ),
+                      )
                     ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 27,
-                top: 666,
-                child: Container(
-                  width: 200,
-                  height: 92,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/img/banner.png'),
-                      fit: BoxFit.fill,
-                    ),
                   ),
                 ),
               ),

@@ -1,7 +1,7 @@
-import 'package:gen_house/screens/loginpage.dart';
+import 'package:gen_house/dashboard/loginpage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:gen_house/screens/dashboard.dart';
+import 'package:gen_house/dashboard/dashboard.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});

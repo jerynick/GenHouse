@@ -1,35 +1,7 @@
 import "package:flutter/material.dart";
-import "package:firebase_core/firebase_core.dart";
-import "package:firebase_database/firebase_database.dart";
 import "package:shared_preferences/shared_preferences.dart";
-import 'dashboard.dart';
+import '../dashboard/dashboard.dart';
 import 'settings.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: FirebaseOptions(
-      apiKey: 'AIzaSyCOjYbqOPx6VgIsvjK-cNiXcQArjnEVBvg',
-      appId: '1:961677687907:android:128ed945e2783f78328c56',
-      messagingSenderId: '961677687907',
-      projectId: 'genhousedb',
-      databaseURL: 'https://genhousedb-default-rtdb.asia-southeast1.firebasedatabase.app',
-      storageBucket: 'genhousedb.appspot.com',
-    )
-  );
-
-  runApp(GenkeyApp()); 
-}
-
-class GenkeyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: GenkeyPage(),
-    );
-  }
-}
 
 class GenkeyPage extends StatefulWidget {
   
