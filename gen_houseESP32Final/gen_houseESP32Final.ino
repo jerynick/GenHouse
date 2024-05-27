@@ -10,7 +10,6 @@
 /* Task Handler */
 TaskHandle_t Task1;
 TaskHandle_t Task2;
-TaskHandle_t Task3;
 
 /* PINS */
 const int dht_pin = 5;
@@ -21,6 +20,7 @@ const int ldr_pin = 4;
 const int flame_pin = 15;
 const int doorsensor_pin = 17;
 const int doorlock_pin = 14;
+const int buzzer_pin = 16;
 const int led1_pin = 27;
 const int led2_pin = 26;
 const int fan_pin = 25;
@@ -29,9 +29,9 @@ const int servo_pin = 32;
 Servo gateS;
 
 /* NTP LCD */
-const char* ntpServer1 = "pool.ntp.org";
+const char* ntpServer1 = "id.pool.ntp.org";
 const long gmtOffset_sec = 25200;
-const int daylightOffset_sec = 3600;
+const int daylightOffset_sec = 0;
 
 /* Database */
 // Connection
@@ -39,6 +39,8 @@ const int daylightOffset_sec = 3600;
 #define FIREBASE_AUTH "qhkYi9MrdQfBzqT2dsgDSZ9UChTRBU4TYx2AKSOE"
 #define WIFI_SSID "Violet Corner"
 #define WIFI_PASSWORD "ambatron"
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 /* NTP Function */
 void printLocalTime() {
@@ -48,9 +50,6 @@ void printLocalTime() {
     return;
   }
 
-  LiquidCrystal_I2C lcd(0x27, 16, 2);
-  lcd.init();
-  lcd.backlight();
   lcd.clear();
   lcd.print(&timeinfo, "%d %B %Y"); // date-month-year
   lcd.setCursor(0, 1);
@@ -66,6 +65,8 @@ void setup() {
   Serial.begin(115200);
   Serial.println("DHT11 test!");
   dht.begin();
+  lcd.init();
+  lcd.backlight();
   gateS.attach(servo_pin);
 
   // NTP
@@ -83,6 +84,7 @@ void setup() {
   Serial.println();
   Serial.print("Connected, IP address: ");
   Serial.println(WiFi.localIP());
+  lcd.print(WiFi.localIP());
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 
   // Identification pin
@@ -91,16 +93,22 @@ void setup() {
   pinMode(doorsensor_pin, INPUT);
   pinMode(doorlock_pin, OUTPUT);
   pinMode(led1_pin, OUTPUT);
+  digitalWrite(led1_pin, HIGH);
   pinMode(led2_pin, OUTPUT);
+  digitalWrite(led2_pin, HIGH);
   pinMode(fan_pin, OUTPUT);
+  digitalWrite(fan_pin, HIGH);
   pinMode(pump_pin, OUTPUT);
+  digitalWrite(pump_pin, HIGH);
 
-  xTaskCreatePinnedToCore(TaskSensors, "TaskSensors", 10000, NULL, 1, &Task1, 0);
-  xTaskCreatePinnedToCore(TaskActuators, "TaskActuators", 10000, NULL, 1, &Task2, 1);
+  xTaskCreatePinnedToCore(TaskSensors, "TaskSensors", 10000, NULL, 1, &Task1, 1);
+  xTaskCreatePinnedToCore(TaskActuators, "TaskActuators", 10000, NULL, 1, &Task2, 0);
 }
 
 void loop() {
-  printLocalTime();
+  if (millis() % 60000 == 0) { // Example: every minute
+    printLocalTime();
+  }
 }
 
 void TaskSensors(void *pvParameters) {
@@ -112,8 +120,8 @@ void TaskSensors(void *pvParameters) {
     int doorstate = digitalRead(doorsensor_pin);
 
     const char* day_status = (ldr == LOW) ? "BRIGHT" : "DARK";
-    const char* fire_status = (flame == HIGH) ? "DETECTED" : "UNDETECTED";
-    const char* door_status = (doorstate == HIGH) ? "OPEN" : "CLOSE";
+    const char* fire_status = (flame == LOW) ? "DETECTED" : "UNDETECTED";
+    const char* door_status = (doorstate == LOW) ? "OPEN" : "CLOSE";
 
     if (!isnan(h) && !isnan(t)) {
       Firebase.setFloat("genkey1/suhu", t);
@@ -124,8 +132,6 @@ void TaskSensors(void *pvParameters) {
     Firebase.setString("genkey1/fire", fire_status);
     Firebase.setString("genkey1/door", door_status);
     Serial.println("Sensor Data Updated");
-
-    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -135,7 +141,8 @@ void TaskActuators(void *pvParameters) {
     digitalWrite(led1_pin, (led1_status == "ON") ? LOW : HIGH);
 
     String fire_status = Firebase.getString("/genkey1/fire");
-    digitalWrite(flame_pin, (fire_status == "DETECTED") ? LOW : HIGH);
+    digitalWrite(pump_pin, (fire_status == "DETECTED") ? LOW : HIGH);
+    digitalWrite(buzzer_pin, (fire_status == "DETECTED") ? LOW : HIGH);
 
     String led2_status = Firebase.getString("/genkey1/led2");
     digitalWrite(led2_pin, (led2_status == "ON") ? LOW : HIGH);
@@ -148,8 +155,6 @@ void TaskActuators(void *pvParameters) {
 
     String solenoid_status = Firebase.getString("/genkey1/doorlock");
     digitalWrite(doorlock_pin, (solenoid_status == "LOCK") ? LOW : HIGH);
-
+    Serial.println("Actuators Data Updated");
   }
-
-  vTaskDelay(pdMS_TO_TICKS(10));
 }

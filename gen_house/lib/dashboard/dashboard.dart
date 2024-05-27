@@ -18,7 +18,7 @@ void main() async {
     )
   );
 
-  runApp(DashboardApp()); 
+  runApp(DashboardApp());
 }
 
 class DashboardApp extends StatelessWidget {
